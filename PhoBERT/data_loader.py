@@ -5,6 +5,7 @@ import os
 
 import torch
 from torch.utils.data import TensorDataset
+import pandas as pd
 from utils import get_intent_labels
 
 
@@ -22,8 +23,7 @@ class InputExample(object):
         slot_labels: (Optional) list. The slot labels of the example.
     """
 
-    def __init__(self, guid, words, intent_label=None):
-        self.guid = guid
+    def __init__(self, words, intent_label=None):
         self.words = words
         self.intent_label = intent_label
 
@@ -69,17 +69,15 @@ class JointProcessor(object):
         self.args = args
         self.intent_labels = get_intent_labels(args)
 
-        self.input_text_file = "seq.in"
-        self.intent_label_file = "label"
+        self.input_label = "data"
+        self.intent_label_file = "class"
 
     @classmethod
-    def _read_file(cls, input_file, quotechar=None):
+    def _read_file(cls, input_file, column):
         """Reads a tab separated value file."""
         with open(input_file, "r", encoding="utf-8") as f:
-            lines = []
-            for line in f:
-                lines.append(line.strip())
-            return lines
+            data = pd.read_csv(input_file)
+            return data[column].tolist()
 
     def _create_examples(self, texts, intents, set_type):
         """Creates examples for the training and dev sets."""
@@ -104,8 +102,8 @@ class JointProcessor(object):
         data_path = os.path.join(self.args.data_dir, self.args.token_level, mode)
         logger.info("LOOKING AT {}".format(data_path))
         return self._create_examples(
-            texts=self._read_file(os.path.join(data_path, self.input_text_file)),
-            intents=self._read_file(os.path.join(data_path, self.intent_label_file)),
+            texts=self._read_file(data_path,self.input_text_file),
+            intents=self._read_file(data_path, self.intent_label_file),
             set_type=mode,
         )
 

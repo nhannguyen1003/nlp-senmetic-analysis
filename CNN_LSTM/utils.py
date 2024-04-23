@@ -5,7 +5,7 @@ import random
 import numpy as np
 import pandas as pd
 import torch
-from keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.text import Tokenizer
 from pyvi import ViTokenizer
 from model import ModelCNN, ModelLSTM, ModelCNN_LSTM
 from seqeval.metrics import f1_score, precision_score, recall_score
@@ -18,26 +18,21 @@ MODEL_CLASSES = {
 }
 
 
-def get_intent_labels(args):
-    return [
-        label.strip()
-        for label in open(os.path.join(args.data_dir, args.token_level, args.intent_label_file), "r", encoding="utf-8")
-    ]
-
 
 
 def load_tokenizer(args):
-    data_train = pd.read_csv("../dataset/origin/vlsp_sentiment_train.csv")
-    data_train.drop(columns=['Id'], inplace=True)
-    sentences = data_train.iloc[:, 1].values
+    data_train = pd.read_csv(
+        "/Users/roy/Documents/nlp/emotion_classification-main/dataset/augment_gpt/vlsp_sentiment_train.csv")
+    sentences = data_train.iloc[:, 2].values
     sentences_train = []
     for sentence in sentences:
         sentence = ViTokenizer.tokenize(sentence.lower())
         sentences_train.append(sentence.split())
-        
-    tokenizer = Tokenizer(num_words=args.max_vocab_size, lower=True, char_level=False)
+
+    tokenizer = Tokenizer(num_words=args.max_vocab_size,
+                          lower=True, char_level=False)
     tokenizer.fit_on_texts(sentences_train)
-    
+
     return tokenizer
 
 
@@ -73,4 +68,3 @@ def get_intent_acc(preds, labels):
 
 def read_prediction_text(args):
     return [text.strip() for text in open(os.path.join(args.pred_dir, args.pred_input_file), "r", encoding="utf-8")]
-

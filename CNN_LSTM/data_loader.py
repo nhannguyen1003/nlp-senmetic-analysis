@@ -6,7 +6,7 @@ import os
 import torch
 from torch.utils.data import TensorDataset
 from keras.utils import pad_sequences
-from utils import get_intent_labels
+import pandas as pd
 
 
 logger = logging.getLogger(__name__)
@@ -65,29 +65,24 @@ class JointProcessor(object):
 
     def __init__(self, args):
         self.args = args
-        self.intent_labels = get_intent_labels(args)
-
-        self.input_text_file = "seq.in"
-        self.intent_label_file = "label"
+        self.intent_labels = [-1, 1, 0]
+        self.input_text_file = "Data"
+        self.intent_label_file = "Class"
 
     @classmethod
-    def _read_file(cls, input_file, quotechar=None):
-        """Reads a tab separated value file."""
-        with open(input_file, "r", encoding="utf-8") as f:
-            lines = []
-            for line in f:
-                lines.append(line.strip())
-            return lines
+    def _read_file(cls, input_file, column):
+        data = pd.read_csv(os.path.join(input_file, "vlsp_sentiment_train.csv"))
+        return data[column].tolist()
 
     def _create_examples(self, texts, intents, set_type):
         """Creates examples for the training and dev sets."""
         examples = []
-        for (text, intent) in enumerate(zip(texts, intents)):
+        for id, (text, intent) in enumerate(zip(texts, intents)):
             # 1. input_text
             words = text.split()  # Some are spaced twice
             # 2. intent
             intent_label = (
-                self.intent_labels.index(intent) if intent in self.intent_labels else self.intent_labels.index("UNK")
+                self.intent_labels.index(intent)
             )
             
             examples.append(InputExample(words=words, intent_label=intent_label))
@@ -98,11 +93,11 @@ class JointProcessor(object):
         Args:
             mode: train, dev, test
         """
-        data_path = os.path.join(self.args.data_dir, self.args.token_level, mode)
+        data_path = os.path.join(self.args.data_dir)
         logger.info("LOOKING AT {}".format(data_path))
         return self._create_examples(
-            texts=self._read_file(os.path.join(data_path, self.input_text_file)),
-            intents=self._read_file(os.path.join(data_path, self.intent_label_file)),
+            texts=self._read_file(data_path, self.input_text_file),
+            intents=self._read_file(data_path, self.intent_label_file),
             set_type=mode,
         )
 

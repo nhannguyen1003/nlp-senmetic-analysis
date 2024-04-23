@@ -1,7 +1,7 @@
 #private file
 dataset/
 PhoBERT/data/
-CNN_LSTM/model/cbow_model/
+CNN_LSTM/model/fasttext_vn/
 augment_data/backup/
 augment_data/fasttext_vn/
 augment_data/PhoBERT_base_fairseq/

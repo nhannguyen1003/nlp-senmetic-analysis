@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.tensorboard import SummaryWriter
 from tqdm.auto import tqdm, trange
 from transformers import AdamW, get_linear_schedule_with_warmup
-from utils import MODEL_CLASSES, compute_metrics, get_intent_labels
+from utils import MODEL_CLASSES, compute_metrics
 
 
 logger = logging.getLogger(__name__)
@@ -23,14 +23,14 @@ class Trainer(object):
         self.test_dataset = test_dataset
         self.tokenizer = tokenizer
 
-        self.intent_label_lst = get_intent_labels(args)
+        self.intent_label_lst = [-1, 1, 0]
         
         self.model = MODEL_CLASSES[args.model_type](args, tokenizer, intent_label_lst=self.intent_label_lst)
 
         # GPU or CPU
-        torch.cuda.set_device(self.args.gpu_id)
-        print(self.args.gpu_id)
-        print(torch.cuda.current_device())
+        # torch.cuda.set_device(self.args.gpu_id)
+        # print(self.args.gpu_id)
+        # print(torch.cuda.current_device())
         self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
         self.model.to(self.device)
 
