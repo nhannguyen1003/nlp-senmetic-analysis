@@ -4,48 +4,51 @@ import numpy as np
 
 from .module import IntentClassifier
 from gensim.models.keyedvectors import KeyedVectors
+from gensim.models import FastText
 
 class ModelCNN_LSTM(nn.Module):
     def __init__(self, args, tokenizer, intent_label_lst):
-        super().__init__()
+        super(ModelCNN_LSTM, self).__init__()
         self.args = args
         self.num_intent_labels = len(intent_label_lst)
         self._initialize_embedding(tokenizer)
         
-        self.list_cnn = nn.ModuleList([nn.Conv1d(args.embedding_dim, 256, i, device='cuda', padding='same') for i in range(3,6)])
+        # List of CNNs with kernel sizes 3, 4, 5
+        self.list_cnn = nn.ModuleList([
+            nn.Conv1d(args.embedding_dim, 256, kernel_size, padding='same') for kernel_size in [3, 4, 5]
+        ])
+        
+        cnn_output_size = 256 * len(self.list_cnn)
+        self.lstm = nn.LSTM(cnn_output_size, args.hidden_size, batch_first=True)
+        
         self.intent_classifier = IntentClassifier(args.hidden_size, self.num_intent_labels, args.dropout_rate)
 
-    
     def _initialize_embedding(self, tokenizer):
-        word_vectors = KeyedVectors.load("./fasttext_vn/cc.vi.300.bin")
+        try:
+            fasttext_model = FastText.load_fasttext_format("/Users/roy/Documents/nlp/emotion_classification-main/CNN_LSTM/model/fasttext_vn/cc.vi.300.bin")
+            word_vectors = fasttext_model.wv
+        except Exception as e:
+            print("Error loading FastText model:", e)
+            raise
         
-        word_index = tokenizer.word_index
-        vocabulary_size = min(len(word_index) + 1, self.args.max_vocab_size)
-        embedding_matrix = np.zeros((vocabulary_size, self.args.embedding_dim))
-
-        for word, i in word_index.items():
-            if i >= self.args.max_vocab_size:
-                continue
+        embedding_matrix = np.zeros((len(tokenizer.word_index) + 1, self.args.embedding_dim))
+        for word, i in tokenizer.word_index.items():
             try:
-                embedding_vector = word_vectors[word]
-                embedding_matrix[i] = embedding_vector
+                embedding_matrix[i] = word_vectors.get_vector(word)
             except KeyError:
-                embedding_matrix[i]=np.random.normal(0,np.sqrt(0.25), self.args.embedding_dim)
-        self.embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_matrix))
-    
-    
+                embedding_matrix[i] = np.random.normal(0, np.sqrt(0.25), self.args.embedding_dim)
+
+        self.embedding = nn.Embedding.from_pretrained(torch.FloatTensor(embedding_matrix), freeze=False)
+
     def forward(self, input_ids, intent_label_ids):
-        embedding = self.embedding(input_ids)
-        embedding = torch.transpose(embedding, 1, 2)
-        cnn_outputs = []
-        for layer in self.list_cnn:
-            output = layer(embedding)
-            output, _ = torch.max(output, dim=-1)
-            cnn_outputs.append(output)
-
-        state = torch.cat(cnn_outputs, dim=1)
-
-        intent_logits = self.intent_classifier(state)
+        x = self.embedding(input_ids)
+        x = torch.transpose(x, 1, 2)
+        cnn_outputs = [torch.max(conv(x), dim=2).values for conv in self.list_cnn]
+        cnn_output = torch.cat(cnn_outputs, dim=1)
+        cnn_output = cnn_output.unsqueeze(1)
+        _, (hidden, _) = self.lstm(cnn_output)
+        
+        intent_logits = self.intent_classifier(hidden.squeeze(0))
 
         total_loss = 0
 
@@ -61,7 +64,7 @@ class ModelCNN_LSTM(nn.Module):
             total_loss += intent_loss
 
 
-        outputs = (intent_logits, state)
+        outputs = (intent_logits, hidden.squeeze(0))
 
         outputs = (total_loss,) + outputs
 

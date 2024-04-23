@@ -37,7 +37,7 @@ if __name__ == "__main__":
         "--model_type",
         default="cnn",
         type=str,
-        help="Model type selected in the list: [cnn, lstm]",
+        help="Model type selected in the list: [cnn, lstm, cnn_lstm]",
     )
     parser.add_argument("--tuning_metric", default="loss", type=str, help="Metrics to tune when training")
     parser.add_argument("--seed", type=int, default=1, help="random seed for initialization")

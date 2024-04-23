@@ -4,6 +4,7 @@ import numpy as np
 
 from .module import IntentClassifier
 from gensim.models.keyedvectors import KeyedVectors
+from gensim.models import FastText
 
 
 
@@ -14,13 +15,17 @@ class ModelCNN(nn.Module):
         self.num_intent_labels = len(intent_label_lst)
         self._initialize_embedding(tokenizer)
         
-        self.list_cnn = nn.ModuleList([nn.Conv1d(args.embedding_dim, 256, i, device='cuda', padding='same') for i in range(3,6)])
+        self.list_cnn = nn.ModuleList([nn.Conv1d(args.embedding_dim, 256, i, padding='same') for i in range(3,6)])
+        self.lstm = nn.LSTM(256, args.hidden_size, batch_first=True)
         self.intent_classifier = IntentClassifier(args.hidden_size, self.num_intent_labels, args.dropout_rate)
 
     
     def _initialize_embedding(self, tokenizer):
-        word_vectors = KeyedVectors.load("./fasttext_vn/cc.vi.300.bin")
-        
+        try:
+            word_vectors = FastText.load_fasttext_format("/Users/roy/Documents/nlp/emotion_classification-main/CNN_LSTM/model/fasttext_vn/cc.vi.300.bin")
+            word_vectors = word_vectors.wv
+        except Exception as e:
+            print("Error loading model:", e)
         word_index = tokenizer.word_index
         vocabulary_size = min(len(word_index) + 1, self.args.max_vocab_size)
         embedding_matrix = np.zeros((vocabulary_size, self.args.embedding_dim))

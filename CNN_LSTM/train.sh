@@ -1,6 +1,6 @@
 export lr=3e-5
 export s=1
-export model="lstm"
+export model="cnn_lstm"
 export MODEL_DIR="./checkpoint/"$model
 
 python3 main.py --token_level word-level \

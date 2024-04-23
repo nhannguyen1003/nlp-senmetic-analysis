@@ -4,6 +4,7 @@ import csv
 
 import numpy as np
 import torch
+import torch.mps
 from early_stopping import EarlyStopping
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from torch.utils.tensorboard import SummaryWriter
@@ -31,7 +32,8 @@ class Trainer(object):
         # torch.cuda.set_device(self.args.gpu_id)
         # print(self.args.gpu_id)
         # print(torch.cuda.current_device())
-        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+        print(torch.backends.mps.is_available())
+        self.device = "mps" if torch.backends.mps.is_available() else "cpu"
         self.model.to(self.device)
 
     def train(self):
