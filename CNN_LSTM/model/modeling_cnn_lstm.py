@@ -25,8 +25,8 @@ class ModelCNN_LSTM(nn.Module):
 
     def _initialize_embedding(self, tokenizer):
         try:
-            fasttext_model = FastText.load_fasttext_format("/Users/roy/Documents/nlp/emotion_classification-main/CNN_LSTM/model/fasttext_vn/cc.vi.300.bin")
-            word_vectors = fasttext_model.wv
+            word_vectors = KeyedVectors.load("/Users/roy/Documents/nlp/emotion_classification-main/CNN_LSTM/model/vi_cbow/vi-model-CBOW-400.bin")
+            word_vectors = word_vectors.wv
         except Exception as e:
             print("Error loading FastText model:", e)
             raise
